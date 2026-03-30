@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🔥 Advanced Game Hub</title>
+  <style>
+    body {
+      margin: 0;
+      text-align: center;
+      background: linear-gradient(135deg,#1e1e2f,#121212);
+      color: white;
+      font-family: Arial;
+    }
+    h1 { margin-top: 20px; }
+
+    .menu button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      background: #ff9800;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    canvas {
+      background: #000;
+      display: none;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #000;
+    }
+
+    #tic {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .cell {
+      width: 70px;
+      height: 70px;
+      border: 2px solid white;
+      display: inline-block;
+      font-size: 35px;
+      line-height: 70px;
+      cursor: pointer;
+    }
+
+    #score {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    #gameOver {
+      display: none;
+      font-size: 22px;
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🎮 Advanced Game Hub</h1>
+
+<div class="menu">
+  <button onclick="startSnake()">🐍 Snake</button>
+  <button onclick="startTic()">❌ Tic-Tac-Toe</button>
+  <button onclick="startCar()">🚗 Car</button>
+</div>
+
+<div id="score">Score: 0</div>
+<div id="gameOver">Game Over</div>
+
+<canvas id="snakeGame" width="400" height="400"></canvas>
+<canvas id="carGame" width="400" height="400"></canvas>
+<div id="tic"></div>
+
+<script>
+let score = 0;
+let gameRunning = false;
+
+function resetUI() {
+  score = 0;
+  document.getElementById("score").innerText = "Score: 0";
+  document.getElementById("gameOver").style.display = "none";
+}
+
+function hideAll() {
+  document.getElementById("snakeGame").style.display = "none";
+  document.getElementById("carGame").style.display = "none";
+  document.getElementById("tic").style.display = "none";
+}
+
+//////////////////// 🐍 SNAKE ////////////////////
+let snakeInterval;
+function startSnake() {
+  hideAll(); resetUI();
+  let canvas = document.getElementById("snakeGame");
+  canvas.style.display = "block";
+  let ctx = canvas.getContext("2d");
+
+  let snake = [{x:200,y:200}];
+  let food = {x:100,y:100};
+  let dx=20, dy=0;
+  gameRunning = true;
+
+  clearInterval(snakeInterval);
+
+  document.onkeydown = e=>{
+    if(e.key==="ArrowUp"){dx=0;dy=-20;}
+    if(e.key==="ArrowDown"){dx=0;dy=20;}
+    if(e.key==="ArrowLeft"){dx=-20;dy=0;}
+    if(e.key==="ArrowRight"){dx=20;dy=0;}
+  };
+
+  snakeInterval = setInterval(()=>{
+    if(!gameRunning) return;
+
+    ctx.clearRect(0,0,400,400);
+
+    // food
+    ctx.fillStyle="red";
+    ctx.beginPath();
+    ctx.arc(food.x+10,food.y+10,10,0,Math.PI*2);
+    ctx.fill();
+
+    // snake
+    ctx.fillStyle="lime";
+    snake.forEach(p=>{
+      ctx.fillRect(p.x,p.y,20,20);
+    });
+
+    let head = {x:snake[0].x+dx, y:snake[0].y+dy};
+
+    // collision wall
+    if(head.x<0||head.y<0||head.x>=400||head.y>=400){
+      gameOver(); return;
+    }
+
+    snake.unshift(head);
+
+    if(head.x===food.x && head.y===food.y){
+      score++;
+      document.getElementById("score").innerText = "Score: "+score;
+      food={
+        x:Math.floor(Math.random()*20)*20,
+        y:Math.floor(Math.random()*20)*20
+      };
+    } else {
+      snake.pop();
+    }
+
+  },100);
+}
+
+//////////////////// ❌ TIC ////////////////////
+function startTic() {
+  hideAll(); resetUI();
+  let div = document.getElementById("tic");
+  div.style.display = "block";
+
+  let turn = "X";
+  let board = Array(9).fill("");
+
+  function checkWin(){
+    let wins = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    return wins.some(c=>c.every(i=>board[i]===turn));
+  }
+
+  function render(){
+    div.innerHTML="";
+    board.forEach((v,i)=>{
+      let cell=document.createElement("div");
+      cell.className="cell";
+      cell.innerText=v;
+      cell.onclick=()=>{
+        if(board[i]===""){
+          board[i]=turn;
+          if(checkWin()){
+            document.getElementById("gameOver").innerText = turn+" Wins!";
+            document.getElementById("gameOver").style.display="block";
+          }
+          turn = turn==="X"?"O":"X";
+          render();
+        }
+      };
+      div.appendChild(cell);
+      if((i+1)%3===0) div.appendChild(document.createElement("br"));
+    });
+  }
+  render();
+}
+
+//////////////////// 🚗 CAR ////////////////////
+let carAnim;
+function startCar() {
+  hideAll(); resetUI();
+  let canvas = document.getElementById("carGame");
+  canvas.style.display = "block";
+  let ctx = canvas.getContext("2d");
+
+  let carX=180;
+  let obstacleY=0;
+  gameRunning = true;
+
+  cancelAnimationFrame(carAnim);
+
+  document.onkeydown = e=>{
+    if(e.key==="ArrowLeft") carX-=20;
+    if(e.key==="ArrowRight") carX+=20;
+  };
+
+  function draw(){
+    if(!gameRunning) return;
+
+    ctx.clearRect(0,0,400,400);
+
+    // road lines
+    ctx.fillStyle="white";
+    for(let i=0;i<400;i+=40){
+      ctx.fillRect(195,i,10,20);
+    }
+
+    // car
+    ctx.fillStyle="blue";
+    ctx.fillRect(carX,340,40,50);
+
+    // obstacle
+    ctx.fillStyle="red";
+    ctx.fillRect(180,obstacleY,40,50);
+
+    // collision
+    if(obstacleY>300 && Math.abs(carX-180)<40){
+      gameOver(); return;
+    }
+
+    obstacleY+=6;
+    if(obstacleY>400){
+      obstacleY=0;
+      score++;
+      document.getElementById("score").innerText="Score: "+score;
+    }
+
+    carAnim = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+//////////////////// GAME OVER ////////////////////
+function gameOver(){
+  gameRunning = false;
+  document.getElementById("gameOver").style.display="block";
+}
+</script>
+
+</body>
+</html>
